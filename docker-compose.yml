@@ -1,0 +1,38 @@
+# Local development convenience only. In production, the backend image
+# defined here is deployed independently to each region (see README.md) —
+# this file just runs one of each for local testing.
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    env_file: ./backend/.env
+    environment:
+      - REGION=local
+      - DB_PATH=/data/snag.sqlite
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes:
+      # Without this, the SQLite file and uploaded files live inside the
+      # container's writable layer and disappear the moment the container
+      # is recreated — defeating the entire point of persisting them.
+      - snag-data:/data
+      - snag-uploads:/app/uploads
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  snag-data:
+  snag-uploads:
